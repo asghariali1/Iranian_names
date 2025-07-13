@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Trend Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            padding: 15px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+        
+        .selected-names {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .name-tag {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .remove-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+        
+        .remove-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-top: 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .error-message {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Name Trend Analyzer</h1>
+        
+        <div class="info-panel">
+            <h3>🔍 How to Use:</h3>
+            <p>Enter Persian names to see their birth trends from 1330-1399 (1951-2020). You can compare multiple names by adding them one by one.</p>
+        </div>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="nameInput" placeholder="Enter a name (e.g., محمد, علي, فاطمه)" />
+            </div>
+            <button class="btn btn-primary" onclick="addName()">Add Name</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <div class="selected-names" id="selectedNames"></div>
+        
+        <div class="stats-grid" id="statsGrid"></div>
+        
+        <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Data will be loaded from JSON file
+        let sampleData = {};
+        let dataLoaded = false;
+        
+        // Load data from JSON file
+        async function loadData() {
+            try {
+                const response = await fetch('name_data.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load data file');
+                }
+                sampleData = await response.json();
+                dataLoaded = true;
+                console.log('Data loaded successfully');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load data. Please make sure name_data.json is in the same directory as this HTML file.');
+                // Fallback to sample data for testing
+
+        let selectedNames = [];
+        let chart = null;
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Name Popularity Trends Over Time',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Year-Month'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Ratio (Name / Total Births)'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function addName() {
+            const input = document.getElementById('nameInput');
+            const name = input.value.trim();
+            
+            if (!dataLoaded) {
+                showError('Data is still loading. Please wait...');
+                return;
+            }
+            
+            if (!name) {
+                showError('Please enter a name');
+                return;
+            }
+            
+            if (selectedNames.includes(name)) {
+                showError('Name already added');
+                return;
+            }
+            
+            if (!sampleData[name]) {
+                // Show available names for better user experience
+                const availableNames = Object.keys(sampleData).slice(0, 10);
+                showError(`Name not found in database. Available names include: ${availableNames.join(', ')}`);
+                return;
+            }
+            
+            selectedNames.push(name);
+            input.value = '';
+            updateDisplay();
+        }
+
+        function removeName(name) {
+            selectedNames = selectedNames.filter(n => n !== name);
+            updateDisplay();
+        }
+
+        function clearAll() {
+            selectedNames = [];
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            updateNameTags();
+            updateChart();
+            updateStats();
+        }
+
+        function updateNameTags() {
+            const container = document.getElementById('selectedNames');
+            container.innerHTML = '';
+            
+            selectedNames.forEach((name, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'name-tag';
+                tag.innerHTML = `
+                    <span>${name}</span>
+                    <button class="remove-btn" onclick="removeName('${name}')">×</button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        function updateChart() {
+            if (!chart) return;
+            
+            if (selectedNames.length === 0) {
+                chart.data.labels = [];
+                chart.data.datasets = [];
+                chart.update();
+                return;
+            }
+            
+            // Get all unique dates
+            const allDates = new Set();
+            selectedNames.forEach(name => {
+                if (sampleData[name]) {
+                    sampleData[name].forEach(item => allDates.add(item.year_month));
+                }
+            });
+            
+            const sortedDates = Array.from(allDates).sort();
+            
+            // Create datasets
+            const datasets = selectedNames.map((name, index) => {
+                const data = sampleData[name] || [];
+                const values = sortedDates.map(date => {
+                    const item = data.find(d => d.year_month === date);
+                    return item ? item.ratio : 0;
+                });
+                
+                return {
+                    label: name,
+                    data: values,
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                };
+            });
+            
+            chart.data.labels = sortedDates;
+            chart.data.datasets = datasets;
+            chart.update();
+        }
+
+        function updateStats() {
+            const container = document.getElementById('statsGrid');
+            container.innerHTML = '';
+            
+            if (selectedNames.length === 0) return;
+            
+            selectedNames.forEach(name => {
+                const data = sampleData[name] || [];
+                const ratios = data.map(d => d.ratio);
+                const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+                const maxRatio = Math.max(...ratios);
+                const minRatio = Math.min(...ratios);
+                
+                const statCard = document.createElement('div');
+                statCard.className = 'stat-card';
+                statCard.innerHTML = `
+                    <div class="stat-value">${name}</div>
+                    <div class="stat-label">Average: ${(avgRatio * 100).toFixed(3)}%</div>
+                    <div class="stat-label">Peak: ${(maxRatio * 100).toFixed(3)}%</div>
+                    <div class="stat-label">Low: ${(minRatio * 100).toFixed(3)}%</div>
+                `;
+                container.appendChild(statCard);
+            });
+        }
+
+        // Event listeners
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addName();
+            }
+        });
+
+        // Initialize
+        loadData().then(() => {
+            initChart();
+        });
+    </script>
+</body>
+</html>
