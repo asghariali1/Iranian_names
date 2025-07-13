@@ -253,36 +253,32 @@
         
         // Load data from JSON file
         async function loadData() {
-    console.log('Starting to load data...');
-    try {
-        const jsonUrl = 'https://raw.githubusercontent.com/asghariali1/Iranian_names/main/name_data.json';
-        console.log('Fetching from:', jsonUrl);
-        
-        const response = await fetch(jsonUrl, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Data loaded successfully:', data);
-        
-        sampleData = data;
-        dataLoaded = true;
-        showSuccessMessage(`Data loaded successfully! ${Object.keys(data).length} names available.`);
-        
-    } catch (error) {
-        console.error('Error loading data:', error);
-        showError(`Failed to load data: ${error.message}. Using sample data instead.`);
-        
-        // Fallback to sample data
-        sampleData = {
+            console.log('Starting to load data...');
+            try {
+                console.log('Attempting to fetch name_data.json...');
+                const response = await fetch('name_data.json');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                console.log('Response received, parsing JSON...');
+                const data = await response.json();
+                console.log('JSON parsed successfully. Number of names:', Object.keys(data).length);
+                
+                sampleData = data;
+                dataLoaded = true;
+                
+                // Show success message
+                showSuccessMessage(`Data loaded successfully! ${Object.keys(data).length} names available.`);
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError(`Failed to load data: ${error.message}. Using sample data instead.`);
+                
+                // Use sample data as fallback
+                sampleData = {
                     "محمد": [
                         { year_month: "1330-01", ratio: 0.045 },
                         { year_month: "1330-02", ratio: 0.047 },
@@ -306,8 +302,8 @@
                         { year_month: "1330-06", ratio: 0.033 }
                     ]
                 };
-        dataLoaded = true;
-    }
+                dataLoaded = true;
+            }
         }
 
         let selectedNames = [];
