@@ -255,17 +255,61 @@
         // Load data from JSON file
         async function loadData() {
             try {
-                const response = await fetch('name_data.json');
-                if (!response.ok) {
-                    throw new Error('Failed to load data file');
+                // Try multiple sources for the JSON data
+                const dataSources = [
+                    'name_data.json', // Local file
+                    'https://your-domain.com/name_data.json', // Replace with your hosting URL
+                    'https://raw.githubusercontent.com/yourusername/data-repo/main/name_data.json' // GitHub raw file
+                ];
+                
+                let response;
+                for (const url of dataSources) {
+                    try {
+                        response = await fetch(url);
+                        if (response.ok) break;
+                    } catch (e) {
+                        continue;
+                    }
                 }
+                
+                if (!response || !response.ok) {
+                    throw new Error('Failed to load data from all sources');
+                }
+                
                 sampleData = await response.json();
                 dataLoaded = true;
                 console.log('Data loaded successfully');
             } catch (error) {
                 console.error('Error loading data:', error);
-                showError('Failed to load data. Please make sure name_data.json is in the same directory as this HTML file.');
+                showError('Failed to load data. The dataset is too large for GitHub. Please host the JSON file separately.');
                 // Fallback to sample data for testing
+                sampleData = {
+                    "محمد": [
+                        { year_month: "1330-01", ratio: 0.045 },
+                        { year_month: "1330-02", ratio: 0.047 },
+                        { year_month: "1330-03", ratio: 0.049 },
+                        { year_month: "1330-04", ratio: 0.051 },
+                        { year_month: "1330-05", ratio: 0.048 },
+                        { year_month: "1330-06", ratio: 0.046 },
+                        { year_month: "1330-07", ratio: 0.044 },
+                        { year_month: "1330-08", ratio: 0.042 },
+                        { year_month: "1330-09", ratio: 0.041 },
+                        { year_month: "1330-10", ratio: 0.043 },
+                        { year_month: "1330-11", ratio: 0.045 },
+                        { year_month: "1330-12", ratio: 0.047 }
+                    ],
+                    "علي": [
+                        { year_month: "1330-01", ratio: 0.032 },
+                        { year_month: "1330-02", ratio: 0.034 },
+                        { year_month: "1330-03", ratio: 0.036 },
+                        { year_month: "1330-04", ratio: 0.038 },
+                        { year_month: "1330-05", ratio: 0.035 },
+                        { year_month: "1330-06", ratio: 0.033 }
+                    ]
+                };
+                dataLoaded = true;
+            }
+        }
 
         let selectedNames = [];
         let chart = null;
