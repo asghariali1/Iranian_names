@@ -3,7 +3,7 @@ This is a trend explorer for Iranian names based on leaked data from Mellat Bank
 
 $\sum X_{i,my} =$ the sum of people who born at a month $m$ of year $y$ and their first name is $i$
 
-$\sum X_{my} =$ the sum of people who born at a month $m of year $y$ regardless of their first name.
+$\sum X_{my} =$ the sum of people who born at a month $m$ of year $y$ regardless of their first name.
 
 
 $R=\frac{\sum X_{my}}{\sum X_{my}}$ is our variable of intrest.
