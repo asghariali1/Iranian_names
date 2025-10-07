@@ -311,32 +311,32 @@
         console.log('Current URL:', window.location.href);
         console.log('Base URL:', window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1));
         
-        // Try multiple path strategies for GitHub Pages compatibility
-        const tryLoadFile = async (filename) => {
-            const paths = [
-                filename, // Relative path
-                `./${filename}`, // Explicit relative path
-                `age_website/${filename}`, // From root with subdirectory
-                `/age_website/${filename}`, // Absolute path with subdirectory
-                `./age_website/${filename}` // Relative path with subdirectory
-            ];
-            
-            for (const path of paths) {
+        // Load both datasets with fallback for GitHub Pages JSON serving issues
+        const loadJsonFile = async (filename) => {
+            try {
+                // Try d3.json first
+                console.log(`Trying d3.json for: ${filename}`);
+                return await d3.json(filename);
+            } catch (error) {
+                console.log(`d3.json failed for ${filename}, trying fetch...`);
                 try {
-                    console.log(`Trying to load: ${path}`);
-                    const data = await d3.json(path);
-                    console.log(`Successfully loaded ${filename} from: ${path}`);
-                    return data;
-                } catch (err) {
-                    console.log(`Failed to load ${filename} from ${path}:`, err.message);
+                    // Fallback to fetch + manual JSON parsing
+                    const response = await fetch(filename);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    const text = await response.text();
+                    return JSON.parse(text);
+                } catch (fetchError) {
+                    console.error(`Both d3.json and fetch failed for ${filename}:`, fetchError);
+                    throw fetchError;
                 }
             }
-            throw new Error(`Could not load ${filename} from any path`);
         };
         
         Promise.all([
-            tryLoadFile("age_counts.json"),
-            tryLoadFile("census.json")
+            loadJsonFile("age_counts.json"),
+            loadJsonFile("census.json")
         ]).then(function([currentData, censusDataRaw]) {
             console.log('Successfully loaded data files');
             console.log('Current data length:', currentData.length);
