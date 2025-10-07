@@ -306,11 +306,41 @@
         // Color scale
         const colorScale = d3.scaleSequential(d3.interpolatePlasma);
         
-        // Load both datasets
+        // Load both datasets with better error handling
+        console.log('Starting to load data files...');
+        console.log('Current URL:', window.location.href);
+        console.log('Base URL:', window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1));
+        
+        // Try multiple path strategies for GitHub Pages compatibility
+        const tryLoadFile = async (filename) => {
+            const paths = [
+                filename, // Relative path
+                `./${filename}`, // Explicit relative path
+                `age_website/${filename}`, // From root with subdirectory
+                `/age_website/${filename}`, // Absolute path with subdirectory
+                `./age_website/${filename}` // Relative path with subdirectory
+            ];
+            
+            for (const path of paths) {
+                try {
+                    console.log(`Trying to load: ${path}`);
+                    const data = await d3.json(path);
+                    console.log(`Successfully loaded ${filename} from: ${path}`);
+                    return data;
+                } catch (err) {
+                    console.log(`Failed to load ${filename} from ${path}:`, err.message);
+                }
+            }
+            throw new Error(`Could not load ${filename} from any path`);
+        };
+        
         Promise.all([
-            d3.json("age_counts.json"),
-            d3.json("census.json")
+            tryLoadFile("age_counts.json"),
+            tryLoadFile("census.json")
         ]).then(function([currentData, censusDataRaw]) {
+            console.log('Successfully loaded data files');
+            console.log('Current data length:', currentData.length);
+            console.log('Census data length:', censusDataRaw.length);
             // Process current data
             originalData = currentData.filter(d => d.Age !== null && d.Age >= 0)
                                     .map(d => ({
@@ -355,6 +385,33 @@
             document.getElementById("binSize").addEventListener("change", updateChart);
             document.getElementById("showCensusBtn").addEventListener("click", toggleCensus);
             document.getElementById("compareBtn").addEventListener("click", toggleCompare);
+        }).catch(function(error) {
+            console.error('Error loading data files:', error);
+            
+            // Display error message to user
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                background-color: #ff4444; 
+                color: white; 
+                padding: 20px; 
+                border-radius: 5px; 
+                margin: 20px 0; 
+                text-align: center;
+                font-weight: bold;
+            `;
+            errorDiv.innerHTML = `
+                <h3>Error Loading Data</h3>
+                <p>Failed to load data files. This might be due to:</p>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>CORS policy restrictions</li>
+                    <li>Missing JSON files</li>
+                    <li>Network connectivity issues</li>
+                </ul>
+                <p><strong>Error details:</strong> ${error.message}</p>
+                <p>Check the browser console for more information.</p>
+            `;
+            container.appendChild(errorDiv);
         });
         
         function toggleCensus() {
