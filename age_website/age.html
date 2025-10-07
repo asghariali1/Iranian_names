@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age Distribution Interactive Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border: 1px solid #404040;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        label {
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        select, input[type="range"], button {
+            padding: 8px;
+            border: 2px solid #555555;
+            border-radius: 5px;
+            font-size: 14px;
+            background: #404040;
+            color: #ffffff;
+        }
+        
+        select:focus, input[type="range"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: 2px solid #3498db;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            border-color: #2980b9;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        button.active {
+            background: #e74c3c;
+            border-color: #e74c3c;
+        }
+        
+        button.active:hover {
+            background: #c0392b;
+            border-color: #c0392b;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+        
+        .range-display {
+            font-weight: bold;
+            color: #e74c3c;
+            min-width: 100px;
+        }
+        
+        .chart-container {
+            margin: 20px 0;
+        }
+        
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 12px;
+            font-size: 14px;
+            background: rgba(45, 45, 45, 0.95);
+            color: white;
+            border: 1px solid #555555;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .bar {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .bar:hover {
+            opacity: 0.8;
+            stroke: #ffffff;
+            stroke-width: 2;
+        }
+        
+        .axis {
+            font-size: 12px;
+        }
+        
+        .axis text {
+            fill: #e0e0e0;
+        }
+        
+        .axis path,
+        .axis line {
+            stroke: #666666;
+        }
+        
+        .axis-label {
+            font-size: 14px;
+            font-weight: bold;
+            fill: #ffffff;
+        }
+        
+        .stats-panel {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding: 20px;
+            background: #3a3a3a;
+            border-radius: 8px;
+            flex-wrap: wrap;
+            gap: 20px;
+            border: 1px solid #555555;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+            display: block;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #cccccc;
+            margin-top: 5px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #666666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Age Distribution Analysis</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="chartType">Chart Type:</label>
+                <select id="chartType">
+                    <option value="bar">Bar Chart</option>
+                    <option value="line">Line Chart</option>
+                    <option value="area">Area Chart</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="ageRange">Age Range:</label>
+                <input type="range" id="ageRangeMin" min="0" max="130" value="0" style="width: 100px;">
+                <span>to</span>
+                <input type="range" id="ageRangeMax" min="0" max="130" value="130" style="width: 100px;">
+                <span class="range-display" id="rangeDisplay">0 - 130</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="binSize">Bin Size:</label>
+                <select id="binSize">
+                    <option value="1">1 Year</option>
+                    <option value="5">5 Years</option>
+                    <option value="10">10 Years</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <button id="showCensusBtn">Show Census Data</button>
+                <button id="compareBtn" style="display:none;">Compare (Age-Shifted -9)</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <svg id="chart"></svg>
+        </div>
+        
+        <div class="stats-panel">
+            <div class="stat-item">
+                <span class="stat-value" id="totalCount">-</span>
+                <div class="stat-label">Total Records</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="meanAge">-</span>
+                <div class="stat-label">Mean Age</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="medianAge">-</span>
+                <div class="stat-label">Median Age</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="modeAge">-</span>
+                <div class="stat-label">Most Common Age</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="ageRange">-</span>
+                <div class="stat-label">Age Range</div>
+            </div>
+            <div class="stat-item" id="pValueStat" style="display:none;">
+                <span class="stat-value" id="pValue">-</span>
+                <div class="stat-label">P-Value (Mean Equality)</div>
+            </div>
+        </div>
+        
+        <div class="legend" id="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(45deg, #3498db, #e74c3c);"></div>
+                <span>Age groups colored by frequency (blue: lower, red: higher)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Load and process the data
+        let originalData = [];
+        let censusData = [];
+        let filteredData = [];
+        let filteredCensusData = [];
+        let currentMode = 'current'; // 'current', 'census', 'compare'
+        
+        // Chart dimensions and margins
+        const margin = {top: 20, right: 30, bottom: 60, left: 80};
+        const width = 1000 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+        
+        // Create SVG
+        const svg = d3.select("#chart")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+            
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+        // Create tooltip
+        const tooltip = d3.select("#tooltip");
+        
+        // Color scale
+        const colorScale = d3.scaleSequential(d3.interpolatePlasma);
+        
+        // Load both datasets
+        Promise.all([
+            d3.json("age_counts.json"),
+            d3.json("census.json")
+        ]).then(function([currentData, censusDataRaw]) {
+            // Process current data
+            originalData = currentData.filter(d => d.Age !== null && d.Age >= 0)
+                                    .map(d => ({
+                                        age: +d.Age,
+                                        count: +d.Count
+                                    }))
+                                    .sort((a, b) => a.age - b.age);
+            
+            // Process census data
+            censusData = censusDataRaw.filter(d => d.Age !== "Over 100")
+                                    .map(d => ({
+                                        age: +d.Age,
+                                        count: +d.Population
+                                    }))
+                                    .sort((a, b) => a.age - b.age);
+            
+            // Handle "Over 100" category by distributing it
+            const over100 = censusDataRaw.find(d => d.Age === "Over 100");
+            if (over100) {
+                // Distribute "Over 100" population across ages 100-130
+                const over100Count = +over100.Population;
+                const avgPerAge = Math.floor(over100Count / 31); // 31 ages from 100 to 130
+                for (let age = 100; age <= 130; age++) {
+                    censusData.push({ age: age, count: avgPerAge });
+                }
+            }
+            censusData.sort((a, b) => a.age - b.age);
+            
+            // Set color scale domain based on current data
+            const maxCount = d3.max(originalData, d => d.count);
+            colorScale.domain([0, maxCount]);
+            
+            // Initialize with current data
+            updateChart();
+            updateStats();
+            updateLegend();
+            
+            // Event listeners
+            document.getElementById("chartType").addEventListener("change", updateChart);
+            document.getElementById("ageRangeMin").addEventListener("input", updateFilters);
+            document.getElementById("ageRangeMax").addEventListener("input", updateFilters);
+            document.getElementById("binSize").addEventListener("change", updateChart);
+            document.getElementById("showCensusBtn").addEventListener("click", toggleCensus);
+            document.getElementById("compareBtn").addEventListener("click", toggleCompare);
+        });
+        
+        function toggleCensus() {
+            const btn = document.getElementById("showCensusBtn");
+            const compareBtn = document.getElementById("compareBtn");
+            
+            if (currentMode === 'current') {
+                currentMode = 'census';
+                btn.textContent = 'Show Data';
+                btn.classList.add('active');
+                compareBtn.style.display = 'inline-block';
+                updateLegend();
+            } else if (currentMode === 'census') {
+                currentMode = 'current';
+                btn.textContent = 'Show Census Data';
+                btn.classList.remove('active');
+                compareBtn.style.display = 'none';
+                compareBtn.classList.remove('active');
+                updateLegend();
+            }
+            
+            updateChart();
+            updateStats();
+        }
+        
+        function toggleCompare() {
+            const btn = document.getElementById("compareBtn");
+            
+            if (currentMode === 'census') {
+                currentMode = 'compare';
+                btn.textContent = 'Hide Comparison';
+                btn.classList.add('active');
+            } else if (currentMode === 'compare') {
+                currentMode = 'census';
+                btn.textContent = 'Compare (Age-Shifted -9)';
+                btn.classList.remove('active');
+            }
+            
+            updateChart();
+            updateStats();
+        }
+        
+        function updateLegend() {
+            const legend = document.getElementById("legend");
+            legend.innerHTML = '';
+            
+            if (currentMode === 'current') {
+                legend.innerHTML = `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(45deg, #3498db, #e74c3c);"></div>
+                        <span>Data - Age groups colored by frequency</span>
+                    </div>
+                `;
+            } else if (currentMode === 'census') {
+                legend.innerHTML = `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(45deg, #f39c12, #e67e22);"></div>
+                        <span>Census Data (9 years ago) - Age groups colored by frequency</span>
+                    </div>
+                `;
+            } else if (currentMode === 'compare') {
+                legend.innerHTML = `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3498db;"></div>
+                        <span>Data (Age-Shifted -9 years)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f39c12;"></div>
+                        <span>Census Data (9 years ago)</span>
+                    </div>
+                `;
+            }
+        }
+        
+        function shiftAgeData(data, years) {
+            return data.map(d => ({
+                age: d.age + years,
+                count: d.count
+            })).filter(d => d.age >= 0 && d.age <= 130); // Keep reasonable age range
+        }
+        
+        // Function to calculate p-value for two-sample t-test (Welch's t-test)
+        function calculatePValue(data1, data2) {
+            if (data1.length === 0 || data2.length === 0) return null;
+            
+            // Convert count data to individual observations (sample approach for large datasets)
+            const sample1 = [];
+            const sample2 = [];
+            
+            // Take weighted samples based on counts (limit for computational efficiency)
+            const maxSampleSize = 10000;
+            let totalCount1 = data1.reduce((sum, d) => sum + d.count, 0);
+            let totalCount2 = data2.reduce((sum, d) => sum + d.count, 0);
+            
+            // Sample from data1
+            for (let d of data1) {
+                const sampleCount = Math.min(d.count, Math.floor(maxSampleSize * d.count / totalCount1));
+                for (let i = 0; i < sampleCount; i++) {
+                    sample1.push(d.age);
+                }
+            }
+            
+            // Sample from data2
+            for (let d of data2) {
+                const sampleCount = Math.min(d.count, Math.floor(maxSampleSize * d.count / totalCount2));
+                for (let i = 0; i < sampleCount; i++) {
+                    sample2.push(d.age);
+                }
+            }
+            
+            if (sample1.length < 2 || sample2.length < 2) return null;
+            
+            // Calculate means
+            const mean1 = sample1.reduce((sum, x) => sum + x, 0) / sample1.length;
+            const mean2 = sample2.reduce((sum, x) => sum + x, 0) / sample2.length;
+            
+            // Calculate variances
+            const var1 = sample1.reduce((sum, x) => sum + Math.pow(x - mean1, 2), 0) / (sample1.length - 1);
+            const var2 = sample2.reduce((sum, x) => sum + Math.pow(x - mean2, 2), 0) / (sample2.length - 1);
+            
+            // Welch's t-test
+            const se = Math.sqrt(var1 / sample1.length + var2 / sample2.length);
+            if (se === 0) return null;
+            
+            const t = (mean1 - mean2) / se;
+            
+            // Degrees of freedom (Welch-Satterthwaite equation)
+            const df = Math.pow(var1 / sample1.length + var2 / sample2.length, 2) / 
+                      (Math.pow(var1 / sample1.length, 2) / (sample1.length - 1) + 
+                       Math.pow(var2 / sample2.length, 2) / (sample2.length - 1));
+            
+            // Approximate p-value using t-distribution
+            // For large df, t-distribution approaches normal distribution
+            const pValue = 2 * (1 - normalCDF(Math.abs(t)));
+            
+            return Math.max(pValue, 1e-10); // Avoid showing 0
+        }
+        
+        // Normal cumulative distribution function approximation
+        function normalCDF(x) {
+            return 0.5 * (1 + erf(x / Math.sqrt(2)));
+        }
+        
+        // Error function approximation
+        function erf(x) {
+            const a1 =  0.254829592;
+            const a2 = -0.284496736;
+            const a3 =  1.421413741;
+            const a4 = -1.453152027;
+            const a5 =  1.061405429;
+            const p  =  0.3275911;
+            
+            const sign = x >= 0 ? 1 : -1;
+            x = Math.abs(x);
+            
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            
+            return sign * y;
+        }
+
+        function updateFilters() {
+            const minAge = +document.getElementById("ageRangeMin").value;
+            const maxAge = +document.getElementById("ageRangeMax").value;
+            
+            // Ensure min <= max
+            if (minAge > maxAge) {
+                if (event.target.id === "ageRangeMin") {
+                    document.getElementById("ageRangeMax").value = minAge;
+                } else {
+                    document.getElementById("ageRangeMin").value = maxAge;
+                }
+            }
+            
+            // Update display
+            const finalMin = Math.min(minAge, maxAge);
+            const finalMax = Math.max(minAge, maxAge);
+            document.getElementById("rangeDisplay").textContent = `${finalMin} - ${finalMax}`;
+            
+            updateChart();
+            updateStats();
+        }
+        
+        function binData(data, binSize) {
+            if (binSize === 1) return data;
+            
+            const bins = {};
+            data.forEach(d => {
+                const binStart = Math.floor(d.age / binSize) * binSize;
+                const binKey = `${binStart}-${binStart + binSize - 1}`;
+                if (!bins[binKey]) {
+                    bins[binKey] = { age: binStart, count: 0, binKey: binKey };
+                }
+                bins[binKey].count += d.count;
+            });
+            
+            return Object.values(bins).sort((a, b) => a.age - b.age);
+        }
+        
+        function updateChart() {
+            const minAge = +document.getElementById("ageRangeMin").value;
+            const maxAge = +document.getElementById("ageRangeMax").value;
+            const chartType = document.getElementById("chartType").value;
+            const binSize = +document.getElementById("binSize").value;
+            
+            // Clear previous chart
+            g.selectAll("*").remove();
+            
+            if (currentMode === 'current') {
+                // Filter and process current data
+                filteredData = originalData.filter(d => d.age >= minAge && d.age <= maxAge);
+                const processedData = binData(filteredData, binSize);
+                
+                if (processedData.length === 0) return;
+                drawSingleDataset(processedData, chartType, binSize, '#3498db');
+                
+            } else if (currentMode === 'census') {
+                // Filter and process census data
+                filteredCensusData = censusData.filter(d => d.age >= minAge && d.age <= maxAge);
+                const processedData = binData(filteredCensusData, binSize);
+                
+                if (processedData.length === 0) return;
+                drawSingleDataset(processedData, chartType, binSize, '#27ae60');
+                
+            } else if (currentMode === 'compare') {
+                // Process both datasets for comparison
+                filteredData = originalData.filter(d => d.age >= minAge && d.age <= maxAge);
+                filteredCensusData = censusData.filter(d => d.age >= minAge && d.age <= maxAge);
+                
+                // Shift current data by -9 years (subtract 9 years)
+                const shiftedCurrentData = shiftAgeData(filteredData, -9).filter(d => d.age >= minAge && d.age <= maxAge);
+                
+                const processedCurrentData = binData(shiftedCurrentData, binSize);
+                const processedCensusData = binData(filteredCensusData, binSize);
+                
+                if (processedCurrentData.length === 0 && processedCensusData.length === 0) return;
+                drawComparisonChart(processedCurrentData, processedCensusData, chartType, binSize);
+            }
+        }
+        
+        function drawSingleDataset(processedData, chartType, binSize, color) {
+            // Set up scales
+            const xScale = d3.scaleBand()
+                .domain(processedData.map(d => binSize === 1 ? d.age : d.binKey))
+                .range([0, width])
+                .padding(0.1);
+                
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(processedData, d => d.count)])
+                .nice()
+                .range([height, 0]);
+            
+            // Create axes
+            drawAxes(xScale, yScale, binSize);
+            
+            // Update color scale for single dataset
+            const maxCount = d3.max(processedData, d => d.count);
+            const singleColorScale = d3.scaleSequential()
+                .domain([0, maxCount])
+                .interpolator(currentMode === 'census' ? 
+                    d3.interpolateOranges : d3.interpolateBlues);
+            
+            // Draw chart based on type
+            if (chartType === "bar") {
+                drawBarChart(processedData, xScale, yScale, binSize, singleColorScale);
+            } else if (chartType === "line") {
+                drawLineChart(processedData, xScale, yScale, binSize, singleColorScale);
+            } else if (chartType === "area") {
+                drawAreaChart(processedData, xScale, yScale, binSize, singleColorScale);
+            }
+        }
+        
+        function drawComparisonChart(currentData, censusData, chartType, binSize) {
+            // Combine domains for consistent scaling
+            const allData = [...currentData, ...censusData];
+            const allAges = [...new Set(allData.map(d => binSize === 1 ? d.age : d.binKey))].sort((a, b) => {
+                if (binSize === 1) return a - b;
+                return parseInt(a.split('-')[0]) - parseInt(b.split('-')[0]);
+            });
+            
+            const xScale = d3.scaleBand()
+                .domain(allAges)
+                .range([0, width])
+                .padding(0.1);
+                
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(allData, d => d.count)])
+                .nice()
+                .range([height, 0]);
+            
+            // Create axes
+            drawAxes(xScale, yScale, binSize);
+            
+            // Draw comparison charts
+            if (chartType === "bar") {
+                drawComparisonBars(currentData, censusData, xScale, yScale, binSize);
+            } else if (chartType === "line") {
+                drawComparisonLines(currentData, censusData, xScale, yScale, binSize);
+            } else if (chartType === "area") {
+                drawComparisonAreas(currentData, censusData, xScale, yScale, binSize);
+            }
+        }
+        
+        function drawAxes(xScale, yScale, binSize) {
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale).tickFormat(d3.format(","));
+            
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(xAxis)
+                .selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em")
+                .attr("transform", "rotate(-45)");
+                
+            g.append("g")
+                .call(yAxis);
+            
+            // Add axis labels
+            g.append("text")
+                .attr("class", "axis-label")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .text(currentMode === 'census' ? "Population" : "Count");
+                
+            g.append("text")
+                .attr("class", "axis-label")
+                .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 10})`)
+                .style("text-anchor", "middle")
+                .text(binSize === 1 ? "Age" : "Age Groups");
+        }
+        
+        function drawBarChart(data, xScale, yScale, binSize, colorScaleOverride = null) {
+            const useColorScale = colorScaleOverride || colorScale;
+            g.selectAll(".bar")
+                .data(data)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScale(binSize === 1 ? d.age : d.binKey))
+                .attr("width", xScale.bandwidth())
+                .attr("y", d => yScale(d.count))
+                .attr("height", d => height - yScale(d.count))
+                .attr("fill", d => useColorScale(d.count))
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d, binSize);
+                })
+                .on("mouseout", hideTooltip);
+        }
+        
+        function drawComparisonBars(currentData, censusData, xScale, yScale, binSize) {
+            const bandwidth = xScale.bandwidth();
+            const barWidth = bandwidth / 2;
+            
+            // Draw current data bars (left side, blue)
+            g.selectAll(".bar-current")
+                .data(currentData)
+                .enter().append("rect")
+                .attr("class", "bar-current")
+                .attr("x", d => xScale(binSize === 1 ? d.age : d.binKey))
+                .attr("width", barWidth)
+                .attr("y", d => yScale(d.count))
+                .attr("height", d => height - yScale(d.count))
+                .attr("fill", "#3498db")
+                .attr("opacity", 0.7)
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d, binSize, "Data (Age-Shifted -9)");
+                })
+                .on("mouseout", hideTooltip);
+            
+            // Draw census data bars (right side, orange)
+            g.selectAll(".bar-census")
+                .data(censusData)
+                .enter().append("rect")
+                .attr("class", "bar-census")
+                .attr("x", d => xScale(binSize === 1 ? d.age : d.binKey) + barWidth)
+                .attr("width", barWidth)
+                .attr("y", d => yScale(d.count))
+                .attr("height", d => height - yScale(d.count))
+                .attr("fill", "#f39c12")
+                .attr("opacity", 0.8)
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d, binSize, "Census Data");
+                })
+                .on("mouseout", hideTooltip);
+        }
+        
+        function drawLineChart(data, xScale, yScale, binSize, colorScaleOverride = null) {
+            const useColorScale = colorScaleOverride || colorScale;
+            const lineColor = currentMode === 'census' ? '#f39c12' : '#3498db';
+            
+            const line = d3.line()
+                .x(d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                .y(d => yScale(d.count))
+                .curve(d3.curveMonotoneX);
+                
+            g.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", lineColor)
+                .attr("stroke-width", 2)
+                .attr("d", line);
+                
+            // Add dots
+            g.selectAll(".dot")
+                .data(data)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .attr("cx", d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                .attr("cy", d => yScale(d.count))
+                .attr("r", 4)
+                .attr("fill", d => useColorScale(d.count))
+                .style("cursor", "pointer")
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d, binSize);
+                })
+                .on("mouseout", hideTooltip);
+        }
+        
+        function drawComparisonLines(currentData, censusData, xScale, yScale, binSize) {
+            // Current data line (blue)
+            const currentLine = d3.line()
+                .x(d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                .y(d => yScale(d.count))
+                .curve(d3.curveMonotoneX);
+                
+            if (currentData.length > 0) {
+                g.append("path")
+                    .datum(currentData)
+                    .attr("fill", "none")
+                    .attr("stroke", "#3498db")
+                    .attr("stroke-width", 3)
+                    .attr("d", currentLine);
+                    
+                g.selectAll(".dot-current")
+                    .data(currentData)
+                    .enter().append("circle")
+                    .attr("class", "dot-current")
+                    .attr("cx", d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                    .attr("cy", d => yScale(d.count))
+                    .attr("r", 4)
+                    .attr("fill", "#3498db")
+                    .style("cursor", "pointer")
+                    .on("mouseover", function(event, d) {
+                        showTooltip(event, d, binSize, "Data (Age-Shifted -9)");
+                    })
+                    .on("mouseout", hideTooltip);
+            }
+            
+            // Census data line (orange)
+            const censusLine = d3.line()
+                .x(d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                .y(d => yScale(d.count))
+                .curve(d3.curveMonotoneX);
+                
+            if (censusData.length > 0) {
+                g.append("path")
+                    .datum(censusData)
+                    .attr("fill", "none")
+                    .attr("stroke", "#f39c12")
+                    .attr("stroke-width", 3)
+                    .attr("d", censusLine);
+                    
+                g.selectAll(".dot-census")
+                    .data(censusData)
+                    .enter().append("circle")
+                    .attr("class", "dot-census")
+                    .attr("cx", d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                    .attr("cy", d => yScale(d.count))
+                    .attr("r", 4)
+                    .attr("fill", "#f39c12")
+                    .style("cursor", "pointer")
+                    .on("mouseover", function(event, d) {
+                        showTooltip(event, d, binSize, "Census Data");
+                    })
+                    .on("mouseout", hideTooltip);
+            }
+        }
+        
+        function drawAreaChart(data, xScale, yScale, binSize, colorScaleOverride = null) {
+            const area = d3.area()
+                .x(d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                .y0(height)
+                .y1(d => yScale(d.count))
+                .curve(d3.curveMonotoneX);
+                
+            const gradientId = currentMode === 'census' ? 'gradientCensus' : 'gradient';
+            g.append("path")
+                .datum(data)
+                .attr("fill", `url(#${gradientId})`)
+                .attr("d", area);
+                
+            // Create gradient
+            const gradient = svg.select("defs").empty() ? 
+                svg.append("defs") : svg.select("defs");
+                
+            const gradientElement = gradient.append("linearGradient")
+                .attr("id", gradientId)
+                .attr("gradientUnits", "userSpaceOnUse")
+                .attr("x1", 0).attr("y1", height)
+                .attr("x2", 0).attr("y2", 0);
+                
+            const color = currentMode === 'census' ? '#f39c12' : '#3498db';
+            gradientElement.append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", color)
+                .attr("stop-opacity", 0.1);
+                
+            gradientElement.append("stop")
+                .attr("offset", "100%")
+                .attr("stop-color", color)
+                .attr("stop-opacity", 0.8);
+                
+            // Add invisible overlay for tooltips
+            g.selectAll(".area-overlay")
+                .data(data)
+                .enter().append("rect")
+                .attr("class", "area-overlay")
+                .attr("x", d => xScale(binSize === 1 ? d.age : d.binKey))
+                .attr("width", xScale.bandwidth())
+                .attr("y", 0)
+                .attr("height", height)
+                .attr("fill", "transparent")
+                .style("cursor", "pointer")
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d, binSize);
+                })
+                .on("mouseout", hideTooltip);
+        }
+        
+        function drawComparisonAreas(currentData, censusData, xScale, yScale, binSize) {
+            // Current data area (blue)
+            if (currentData.length > 0) {
+                const currentArea = d3.area()
+                    .x(d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                    .y0(height)
+                    .y1(d => yScale(d.count))
+                    .curve(d3.curveMonotoneX);
+                    
+                g.append("path")
+                    .datum(currentData)
+                    .attr("fill", "#3498db")
+                    .attr("fill-opacity", 0.5)
+                    .attr("d", currentArea);
+            }
+            
+            // Census data area (orange)
+            if (censusData.length > 0) {
+                const censusArea = d3.area()
+                    .x(d => xScale(binSize === 1 ? d.age : d.binKey) + xScale.bandwidth() / 2)
+                    .y0(height)
+                    .y1(d => yScale(d.count))
+                    .curve(d3.curveMonotoneX);
+                    
+                g.append("path")
+                    .datum(censusData)
+                    .attr("fill", "#f39c12")
+                    .attr("fill-opacity", 0.6)
+                    .attr("d", censusArea);
+            }
+            
+            // Add invisible overlay for tooltips (combined data)
+            const allData = [...currentData, ...censusData];
+            g.selectAll(".area-overlay")
+                .data(allData)
+                .enter().append("rect")
+                .attr("class", "area-overlay")
+                .attr("x", d => xScale(binSize === 1 ? d.age : d.binKey))
+                .attr("width", xScale.bandwidth())
+                .attr("y", 0)
+                .attr("height", height)
+                .attr("fill", "transparent")
+                .style("cursor", "pointer")
+                .on("mouseover", function(event, d) {
+                    const dataType = currentData.includes(d) ? "Data (Age-Shifted -9)" : "Census Data";
+                    showTooltip(event, d, binSize, dataType);
+                })
+                .on("mouseout", hideTooltip);
+        }
+        
+        function showTooltip(event, d, binSize, dataType = null) {
+            tooltip.transition().duration(200).style("opacity", .9);
+            
+            let tooltipText;
+            const label = currentMode === 'census' ? 'Population' : 'Count';
+            const typePrefix = dataType ? `${dataType}<br/>` : '';
+            
+            if (binSize === 1) {
+                tooltipText = `${typePrefix}Age: ${d.age}<br/>${label}: ${d.count.toLocaleString()}`;
+            } else {
+                tooltipText = `${typePrefix}Age Group: ${d.binKey}<br/>${label}: ${d.count.toLocaleString()}`;
+            }
+            
+            tooltip.html(tooltipText)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+        
+        function hideTooltip() {
+            tooltip.transition().duration(500).style("opacity", 0);
+        }
+        
+        function updateStats() {
+            let dataToAnalyze = [];
+            let labelPrefix = "";
+            
+            if (currentMode === 'current') {
+                if (filteredData.length === 0) return;
+                dataToAnalyze = filteredData;
+                labelPrefix = "Data";
+            } else if (currentMode === 'census') {
+                if (filteredCensusData.length === 0) return;
+                dataToAnalyze = filteredCensusData;
+                labelPrefix = "Census Data";
+            } else if (currentMode === 'compare') {
+                // Show combined statistics
+                const shiftedCurrentData = shiftAgeData(filteredData, -9);
+                if (shiftedCurrentData.length === 0 && filteredCensusData.length === 0) return;
+                
+                updateComparisonStats(shiftedCurrentData, filteredCensusData);
+                return;
+            }
+            
+            // Calculate statistics for single dataset
+            const totalCount = dataToAnalyze.reduce((sum, d) => sum + d.count, 0);
+            
+            // Calculate weighted mean
+            const weightedSum = dataToAnalyze.reduce((sum, d) => sum + (d.age * d.count), 0);
+            const meanAge = weightedSum / totalCount;
+            
+            // Find mode (most common age)
+            const maxCount = d3.max(dataToAnalyze, d => d.count);
+            const modeAge = dataToAnalyze.find(d => d.count === maxCount).age;
+            
+            // Calculate median (approximate)
+            let cumulativeCount = 0;
+            const halfCount = totalCount / 2;
+            let medianAge = 0;
+            
+            for (let i = 0; i < dataToAnalyze.length; i++) {
+                cumulativeCount += dataToAnalyze[i].count;
+                if (cumulativeCount >= halfCount) {
+                    medianAge = dataToAnalyze[i].age;
+                    break;
+                }
+            }
+            
+            const ageRange = `${d3.min(dataToAnalyze, d => d.age)} - ${d3.max(dataToAnalyze, d => d.age)}`;
+            
+            // Update display
+            document.getElementById("totalCount").textContent = totalCount.toLocaleString();
+            document.getElementById("meanAge").textContent = meanAge.toFixed(1);
+            document.getElementById("medianAge").textContent = medianAge;
+            document.getElementById("modeAge").textContent = modeAge;
+            document.getElementById("ageRange").textContent = ageRange;
+            
+            // Hide p-value for single dataset
+            document.getElementById("pValueStat").style.display = "none";
+        }
+        
+        function updateComparisonStats(currentData, censusData) {
+            // Data stats
+            const currentTotal = currentData.reduce((sum, d) => sum + d.count, 0);
+            const currentWeightedSum = currentData.reduce((sum, d) => sum + (d.age * d.count), 0);
+            const currentMean = currentTotal > 0 ? currentWeightedSum / currentTotal : 0;
+            
+            // Census data stats
+            const censusTotal = censusData.reduce((sum, d) => sum + d.count, 0);
+            const censusWeightedSum = censusData.reduce((sum, d) => sum + (d.age * d.count), 0);
+            const censusMean = censusTotal > 0 ? censusWeightedSum / censusTotal : 0;
+            
+            // Calculate p-value for mean equality
+            const pValue = calculatePValue(currentData, censusData);
+            
+            // Update display with comparison
+            document.getElementById("totalCount").innerHTML = 
+                `Data: ${currentTotal.toLocaleString()}<br/>Census: ${censusTotal.toLocaleString()}`;
+            document.getElementById("meanAge").innerHTML = 
+                `Data: ${currentMean.toFixed(1)}<br/>Census: ${censusMean.toFixed(1)}`;
+            
+            // For median and mode, show the difference
+            const meanDifference = (currentMean - censusMean).toFixed(1);
+            const diffSign = meanDifference > 0 ? '+' : '';
+            document.getElementById("medianAge").innerHTML = `Diff: ${diffSign}${meanDifference}`;
+            
+            // Show age ranges
+            const currentAgeRange = currentData.length > 0 ? 
+                `${d3.min(currentData, d => d.age)}-${d3.max(currentData, d => d.age)}` : "N/A";
+            const censusAgeRange = censusData.length > 0 ? 
+                `${d3.min(censusData, d => d.age)}-${d3.max(censusData, d => d.age)}` : "N/A";
+            
+            document.getElementById("modeAge").innerHTML = 
+                `Data: ${currentAgeRange}<br/>Census: ${censusAgeRange}`;
+            document.getElementById("ageRange").innerHTML = "Comparison View";
+            
+            // Show p-value
+            document.getElementById("pValueStat").style.display = "block";
+            if (pValue !== null) {
+                let pValueText;
+                if (pValue < 0.001) {
+                    pValueText = "< 0.001";
+                } else if (pValue < 0.01) {
+                    pValueText = pValue.toFixed(3);
+                } else {
+                    pValueText = pValue.toFixed(3);
+                }
+                
+                // Color code based on significance
+                const pValueElement = document.getElementById("pValue");
+                pValueElement.textContent = pValueText;
+                
+                if (pValue < 0.001) {
+                    pValueElement.style.color = "#e74c3c"; // Red - highly significant
+                } else if (pValue < 0.01) {
+                    pValueElement.style.color = "#f39c12"; // Orange - significant
+                } else if (pValue < 0.05) {
+                    pValueElement.style.color = "#f1c40f"; // Yellow - marginally significant
+                } else {
+                    pValueElement.style.color = "#2ecc71"; // Green - not significant
+                }
+            } else {
+                document.getElementById("pValue").textContent = "N/A";
+                document.getElementById("pValue").style.color = "#e74c3c";
+            }
+        }
+    </script>
+</body>
+</html>
